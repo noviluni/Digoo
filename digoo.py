@@ -12,10 +12,14 @@ class Digoo:
         """
         self.ip = ip
         self.headers = {'Content-Type': 'application/soap+xml'}
-        self.player = vlc.MediaPlayer('rtsp://admin:20160404@{}/onvif1'.format(self.ip))
-        self.lq_player = vlc.MediaPlayer('rtsp://admin:20160404@{}/onvif2'.format(self.ip))
+        self._hd_player = vlc.MediaPlayer('rtsp://admin:20160404@{}/onvif1'.format(self.ip))
+        self._lq_player = vlc.MediaPlayer('rtsp://admin:20160404@{}/onvif2'.format(self.ip))
 
-    def generate_xml_body(self, x='0.0', y='0.0'):
+    #############
+    # MOVEMENTS #
+    #############
+
+    def _generate_xml_body(self, x='0.0', y='0.0'):
         """
         Generate xml body to move camera (SOAP).
 
@@ -55,7 +59,7 @@ class Digoo:
         </v:Envelope>'''.format(x, y)
         return data
 
-    def move_camera(self, x='0.0', y='0.0'):
+    def _move_camera(self, x='0.0', y='0.0'):
         """
         Move video to indicated coordenates.
         :param x: Values can get are 0.0 or 1.0
@@ -63,12 +67,14 @@ class Digoo:
         :return:
         """
         url = 'http://{}:5000/onvif/device_service'.format(self.ip)
-        data = self.generate_xml_body(x, y)
+        data = self._generate_xml_body(x, y)
 
         try:
             requests.post(url, headers=self.headers, data=data)
         except ConnectionError:
-            Exception('Cannot connect with camera. Check the IP and try again.')
+            ConnectionError('Cannot connect with the Digoo camera. Check that the camera is connected to the network '
+                            'and powered on, your computer is in the same LAN and the IP address you have entered is '
+                            'correct.')
 
     def move_left(self):
         """
@@ -76,7 +82,7 @@ class Digoo:
 
         :return:
         """
-        self.move_camera(x='-1.0')
+        self._move_camera(x='-1.0')
 
     def move_right(self):
         """
@@ -84,7 +90,7 @@ class Digoo:
 
         :return:
         """
-        self.move_camera(x='1.0')
+        self._move_camera(x='1.0')
 
     def move_up(self):
         """
@@ -92,7 +98,7 @@ class Digoo:
 
         :return:
         """
-        self.move_camera(y='1.0')
+        self._move_camera(y='1.0')
 
     def move_down(self):
         """
@@ -100,23 +106,55 @@ class Digoo:
 
         :return:
         """
-        self.move_camera(y='-1.0')
+        self._move_camera(y='-1.0')
 
-    def play_video(self):
+    #########
+    # VIDEO #
+    #########
+
+    def _play_hd_video(self):
         """
         Play video streaming with VLC
 
         :return:
         """
-        self.player.play()
+        self._hd_player.play()
 
-    def play_lq_video(self):
+    def _stop_hd_video(self):
+        """
+        Stop video streaming with VLC
+
+        :return:
+        """
+        self._hd_player.stop()
+
+    def _play_lq_video(self):
         """
         Play low quality video streaming with VLC
 
         :return:
         """
-        self.lq_player.play()
+        self._lq_player.play()
+
+    def _stop_lq_video(self):
+        """
+        Stop low quality video streaming with VLC
+
+        :return:
+        """
+        self._lq_player.stop()
+
+    def play_video(self, hd=True):
+        """
+        Play video streaming with VLC.
+
+        :param hd: determine if video is in High Definition or in low quality
+        :return:
+        """
+        if hd:
+            self._play_hd_video()
+        else:
+            self._play_lq_video()
 
     def stop_video(self):
         """
@@ -124,26 +162,32 @@ class Digoo:
 
         :return:
         """
-        self.player.stop()
 
-    def stop_lq_video(self):
+        if self._hd_player.is_playing() > 0:
+            self._stop_hd_video()
+        else:
+            self._stop_lq_video()
+
+    def take_snapshot(self, image_name=''):
         """
-        Stop low quality video streaming with VLC
+        Take a snapshot from video.
 
+        Take a snapshot from video and save it with the given name (image_name). If no image_name is provided a default
+        name is given. Needs VLC and video should be playing.
+
+        NOTE: Seems that is not working on VLC 2.2 without changing configuration
+         (https://bugs.launchpad.net/ubuntu/+source/vlc/+bug/1608232). If you need this
+         function try to update VLC to 3.0 version.
+
+        :param image_name:
         :return:
         """
-        self.lq_player.play()
+        name = image_name if image_name else '.image.png'
 
-    # def take_snapshot(self):
-    #     """
-    #     Takes a snapshot from video. Needs VLC and low quality video should be playing.
-    #
-    #     Seems that is not working on VLC 2.2. without changing configuration
-    #      (https://bugs.launchpad.net/ubuntu/+source/vlc/+bug/1608232)
-    #
-    #     :return:
-    #     """
-    #
-    #     snapshot_done = self.lq_player.video_take_snapshot(0, '.imagen.png', 0, 0)
-    #     if not snapshot_done:
-    #         print('There was an error and no snapshot was taken')
+        if self._hd_player.is_playing() > 0:
+            self._lq_player.video_take_snapshot(0, name, 0, 0)
+
+        elif self._lq_player.is_playing() > 0:
+            self._lq_player.video_take_snapshot(0, name, 0, 0)
+        else:
+            print("It's necessary to play the video in order to take a snapshot.")

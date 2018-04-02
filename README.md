@@ -1,9 +1,10 @@
+
 # Digoo
 
 Python script to use Digoo ip cams.
 
 
-**Note**: Tested with **Digoo BB-M1X** (*Digoo Camera M-series M1X*) also called *Digoo BB-MIX Mini IP Camera* over Linux. It should work with other Digoo IP cams.
+**Note**: Tested with **Digoo BB-M1X** (*Digoo Camera M-series M1X*) also called *Digoo BB-MIX Mini IP Camera* over Linux. It should work with other Digoo IP cams like *Digoo BB-M1Q*.
 
 
 ## How to use
@@ -12,7 +13,7 @@ Python script to use Digoo ip cams.
 
 ```python
 from digoo import Digoo
-d = Digoo('<your-cam-ip>')
+d = Digoo('<your-cam-ip-address>')
 ```
 
 
@@ -52,30 +53,38 @@ d.play_video()
 
 In this moment, errors are shown in console, however you can use the script and move the camera without stopping the video.
 
+You can also play a **low quality video** streaming adding `hd=False`
 
-To stop video just use:
+```python
+d.play_video(hd=False)
+```
+
+To stop the video streaming just use:
 
 ```python
 d.stop_video()
 ```
 
-You can also play a **low quality video** streaming with the next command:
+
+### Video snapshot
+
+It's possible to take a snapshot from the currently streaming video (experimental feature). To do it just use:
 
 ```python
-d.play_lq_video()
+d.take_snapshot()
 ```
 
-And stop it with:
+The quality of the image depends of the quality of the streaming video (low quality or high definition). If there is not streaming video playing, a notice is going to be shown on console and no snapshot is going to be taken.
 
-```python
-d.stop_lq_video()
-```
+*Note: It seems that there is a bug in VLC 2 that doesn't allow to take snapshots (https://bugs.launchpad.net/ubuntu/+source/vlc/+bug/1608232).
+If you need this feature try to update to VLC 3.*
 
 
 ## Requirements
 
 ### Python Requirements
 
+* requests
 * python-vlc
 
 ### System Requirements
@@ -91,9 +100,7 @@ Based on some ideas taken from:  https://github.com/felixsteghofer/digoo-m1x_hac
 
 ## Next/TODO
 
-It could be nice to implement a way to take an snapshot. Some code is written and commented.
-
-I would like also to hide VLC error messages.
+I would like to hide VLC error messages.
 
 
 ## License
